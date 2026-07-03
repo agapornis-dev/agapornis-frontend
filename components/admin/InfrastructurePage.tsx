@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { 
   MoveRight, 
   Server, 
@@ -16,6 +16,117 @@ import { btn, inp } from '../../lib/constants';
 import { Panel, EmptyState, cn } from '../ui';
 import { ServerRecord } from '../../lib/types';
 import { useConfirm } from '../feedback/FeedbackProvider';
+import { requestJson } from '../../lib/http';
+
+/* ── Self-contained screen (data fetching + transfer operations) ───── */
+
+interface OperationJob {
+  id: string;
+  status: 'queued' | 'running' | 'complete' | 'failed';
+  phase: string;
+  progress: number;
+  message: string;
+  errorMessage?: string;
+  result?: any;
+}
+
+interface StoredOperation {
+  id: string;
+  mode: 'server' | 'node';
+  targetNodeId: string;
+}
+
+const ACTIVE_OPERATION_KEY = 'agapornis.active-transfer-operation';
+
+function storeOperation(op: StoredOperation) { try { window.sessionStorage.setItem(ACTIVE_OPERATION_KEY, JSON.stringify(op)); } catch {} }
+function readStoredOperation(): StoredOperation | undefined { try { const r = window.sessionStorage.getItem(ACTIVE_OPERATION_KEY); return r ? JSON.parse(r) : undefined; } catch { return undefined; } }
+function clearStoredOperation(expectedId?: string) { try { if (expectedId) { const c = readStoredOperation(); if (c?.id !== expectedId) return; } window.sessionStorage.removeItem(ACTIVE_OPERATION_KEY); } catch {} }
+
+function waitForOperation(apiBase: string, initial: OperationJob, onProgress: (job: OperationJob) => void) {
+  onProgress(initial);
+  return new Promise<any>((resolve, reject) => {
+    let settled = false; let polling = false;
+    const source = new EventSource(`${apiBase || '/api'}/operations/${encodeURIComponent(initial.id)}/stream`);
+    const finish = (job: OperationJob) => {
+      if (settled) return; onProgress(job);
+      if (job.status !== 'complete' && job.status !== 'failed') return;
+      settled = true; source.close();
+      if (job.status === 'complete') resolve(job.result); else reject(new Error(job.errorMessage || job.message || 'Operation failed'));
+    };
+    const receive = (event: Event) => { try { finish(JSON.parse((event as MessageEvent).data)); } catch {} };
+    source.addEventListener('progress', receive); source.addEventListener('complete', receive); source.addEventListener('failed', receive);
+    source.onerror = () => {
+      if (settled || polling) return; source.close(); polling = true;
+      void pollOperation(apiBase, initial.id, finish).catch(e => { if (!settled) { settled = true; reject(e); } });
+    };
+    finish(initial);
+  });
+}
+
+async function pollOperation(apiBase: string, id: string, receive: (job: OperationJob) => void) {
+  let failed = 0;
+  while (true) {
+    try { const job: OperationJob = await requestJson(apiBase, `/operations/${encodeURIComponent(id)}`, {}); failed = 0; receive(job); if (job.status === 'complete' || job.status === 'failed') return; }
+    catch (e) { failed++; if (failed >= 30) throw e; }
+    await new Promise(r => setTimeout(r, 1000));
+  }
+}
+
+export function InfrastructureScreen({ apiBase, showToast }: { apiBase: string; showToast: (msg: string, type: 'success' | 'error') => void }) {
+  const [data, setData] = useState({ agents: [] as any[], servers: [] as ServerRecord[] });
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [transferProgress, setTransferProgress] = useState<TransferProgress | null>(null);
+
+  const fetchAll = async () => {
+    const results = await Promise.all([requestJson(apiBase, '/agents', {}).catch(() => []), requestJson(apiBase, '/servers', {}).catch(() => [])]);
+    setData({ agents: results[0], servers: results[1] }); setLoading(false);
+  };
+
+  useEffect(() => { fetchAll(); }, [apiBase]);
+
+  useEffect(() => {
+    const stored = readStoredOperation(); if (!stored) return;
+    let active = true; setBusy(true);
+    const reconnecting: OperationJob = { id: stored.id, status: 'queued', phase: 'reconnecting', progress: 5, message: 'Reconnecting to the active transfer' };
+    void waitForOperation(apiBase, reconnecting, update => { if (active) setTransferProgress({ mode: stored.mode, ...update }); })
+      .then(async result => { if (!active) return; const count = stored.mode === 'node' ? `${Number(result?.serversMigrated || 0)} servers` : 'Server'; showToast(`${count} and attached data transferred to ${stored.targetNodeId}`, 'success'); await fetchAll(); })
+      .catch(e => { if (active) showToast(e.message || 'Transfer failed', 'error'); })
+      .finally(() => { clearStoredOperation(stored.id); if (active) setBusy(false); });
+    return () => { active = false; };
+  }, [apiBase]);
+
+  const handleTransfer = async (nodeId: string, serverId: string, targetNodeId: string) => {
+    setBusy(true);
+    try {
+      const job: OperationJob = await requestJson(apiBase, `/agents/${encodeURIComponent(nodeId)}/servers/${encodeURIComponent(serverId)}/transfer`, {}, { method: 'POST', body: JSON.stringify({ targetNodeId }) });
+      storeOperation({ id: job.id, mode: 'server', targetNodeId });
+      const result = await waitForOperation(apiBase, job, update => setTransferProgress({ mode: 'server', ...update }));
+      const dbCount = Number(result?.databasesTransferred || 0);
+      const note = result?.cleanupPending ? ' Source cleanup is still pending.' : '';
+      showToast(`Server, local backups, and ${dbCount} database${dbCount === 1 ? '' : 's'} transferred to ${targetNodeId}.${note}`, 'success');
+      await fetchAll();
+    } catch (e: any) { showToast(e.message, 'error'); throw e; }
+    finally { clearStoredOperation(); setBusy(false); }
+  };
+
+  const handleMigrate = async (sourceNodeId: string, targetNodeId: string) => {
+    setBusy(true);
+    try {
+      const job: OperationJob = await requestJson(apiBase, `/agents/${encodeURIComponent(sourceNodeId)}/servers/migrate`, {}, { method: 'POST', body: JSON.stringify({ targetNodeId }) });
+      storeOperation({ id: job.id, mode: 'node', targetNodeId });
+      const result = await waitForOperation(apiBase, job, update => setTransferProgress({ mode: 'node', ...update }));
+      const pending = Number(result?.cleanupPendingServers || 0);
+      const note = pending > 0 ? ` Source cleanup remains pending for ${pending} server${pending === 1 ? '' : 's'}.` : '';
+      showToast(`${Number(result?.serversMigrated || 0)} servers and their attached data migrated to ${targetNodeId}.${note}`, 'success');
+      await fetchAll();
+    } catch (e: any) { showToast(e.message, 'error'); throw e; }
+    finally { clearStoredOperation(); setBusy(false); }
+  };
+
+  if (loading) return <div>Loading...</div>;
+  return <InfrastructurePanel agents={data.agents} servers={data.servers} busy={busy} progress={transferProgress} onTransferServer={handleTransfer} onMigrateNode={handleMigrate} />;
+}
 
 export interface TransferProgress {
   mode: 'server' | 'node';

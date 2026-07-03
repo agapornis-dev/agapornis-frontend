@@ -1,6 +1,44 @@
+import { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle2, DownloadCloud, PackageCheck, RefreshCw, Rocket, RotateCcw, ShieldCheck } from 'lucide-react';
 import { btn } from '../../lib/constants';
 import { EmptyState, MetricCell, Panel, cn } from '../ui';
+import { requestJson } from '../../lib/http';
+import { useConfirm } from '../feedback/FeedbackProvider';
+import { useApiAction } from '../../hooks/useApiAction';
+
+/* ── Self-contained screen (data fetching + UI) ─────────────────────── */
+
+export function UpdatesScreen({ apiBase, showToast, canDeployPanel }: { apiBase: string; showToast: (msg: string, type: 'success' | 'error') => void; canDeployPanel: boolean }) {
+  const [updates, setUpdates] = useState<any>(null);
+  const [panelUpdate, setPanelUpdate] = useState<any>(null);
+  const { busy, run } = useApiAction(showToast);
+  const confirm = useConfirm();
+
+  const fetchUpdates = async () => {
+    const [nextUpdates, nextPanelUpdate] = await Promise.all([
+      requestJson(apiBase, '/agents/updates', {}).catch(() => null),
+      requestJson(apiBase, '/system/updates', {}).catch(() => null)
+    ]);
+    setUpdates(nextUpdates);
+    setPanelUpdate(nextPanelUpdate);
+  };
+
+  useEffect(() => { void fetchUpdates(); }, [apiBase]);
+
+  return (
+    <UpdatesPage
+      updates={updates} panelUpdate={panelUpdate} busy={busy} canDeployPanel={canDeployPanel}
+      onApplyUpdate={async (nodeId) => { await run(async () => { const r: any = await requestJson(apiBase, `/agents/${nodeId}/update`, {}, { method: 'POST', body: JSON.stringify({}) }); return r; }, 'Update staged'); await fetchUpdates(); }}
+      onCheckPanelUpdate={async () => { const result = await run(() => requestJson(apiBase, '/system/updates/check', {}, { method: 'POST' }), 'Release manifest refreshed'); if (result) setPanelUpdate(result); }}
+      onDeployPanelUpdate={async () => {
+        const accepted = await confirm({ title: 'Deploy panel update', description: 'Both API and frontend artifacts will be downloaded, checksum-verified, and handed to the configured deployment supervisor. Active requests may reconnect while replicas restart.', confirmLabel: 'Verify and deploy' });
+        if (!accepted) return;
+        await run(() => requestJson(apiBase, '/system/updates/deploy', {}, { method: 'POST' }), 'Panel update handed to the deployment supervisor');
+        await fetchUpdates();
+      }}
+    />
+  );
+}
 
 export function UpdatesPage({
   updates,

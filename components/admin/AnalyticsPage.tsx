@@ -1,15 +1,39 @@
+import { useEffect, useState } from 'react';
 import { Activity, Database, HardDrive, MemoryStick, Server, Users } from 'lucide-react';
 import { ArcElement, CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Tooltip } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
 import { useMemo } from 'react';
 import { LiveConnectionState } from '../../hooks/useAgentHealth';
+import { useAgentHealth } from '../../hooks/useAgentHealth';
 import { AgentHealth, ServerRecord, User } from '../../lib/types';
 import { formatBytes } from '../../lib/utils';
+import { requestJson } from '../../lib/http';
 import { EmptyState, MetricCell, Panel, cn } from '../ui';
-import { LiveStatus } from '../feedback/LoadingStates';
+import { LiveStatus, ScreenLoading } from '../feedback/LoadingStates';
 import { NodeFleetStatus } from './NodeStatusPage';
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, LineElement, PointElement, Filler, Tooltip, Legend);
+
+/* ── Self-contained screen (data fetching + UI) ─────────────────────── */
+
+export function AnalyticsScreen({ apiBase, showToast }: { apiBase: string; showToast: (message: string, type: 'success' | 'error') => void }) {
+  const [data, setData] = useState<{ servers: ServerRecord[]; users: User[]; database: any } | null>(null);
+  const { agents, connection } = useAgentHealth(apiBase);
+
+  useEffect(() => {
+    let closed = false;
+    void Promise.all([
+      requestJson(apiBase, '/servers', {}),
+      requestJson(apiBase, '/auth/users', {}),
+      requestJson(apiBase, '/system/database', {}).catch(() => null)
+    ]).then(([servers, users, database]) => !closed && setData({ servers, users, database }))
+      .catch(error => showToast(error.message, 'error'));
+    return () => { closed = true; };
+  }, [apiBase, showToast]);
+
+  if (!data) return <ScreenLoading title="Building fleet analytics" detail="Loading server and ownership data while node telemetry connects in the background." />;
+  return <AnalyticsPage {...data} agents={agents} connection={connection} />;
+}
 
 export function AnalyticsPage({
   servers,

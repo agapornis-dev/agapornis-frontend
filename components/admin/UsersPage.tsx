@@ -1,10 +1,49 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { CalendarDays, ChevronRight, KeyRound, Search, Server, Shield, Trash2, UserRound, Users, Mail, History } from 'lucide-react';
 import { btn, inp } from '../../lib/constants';
 import { EmptyState, Panel, cn } from '../ui';
 import { ActivityLogEntry, ServerRecord, User, UserRole } from '../../lib/types';
 import { useConfirm } from '../feedback/FeedbackProvider';
+import { useLazyData } from '../../hooks/useLazyData';
+import { requestJson } from '../../lib/http';
+import { useApiAction } from '../../hooks/useApiAction';
+
+/* ── Self-contained screen (data fetching + UI) ─────────────────────── */
+
+export function UsersScreen({ apiBase, showToast, currentUserId }: { apiBase: string; showToast: (msg: string, type: 'success' | 'error') => void; currentUserId: string }) {
+  const { data: users, loading, refresh } = useLazyData<User[]>(apiBase, '/auth/users', {}, []);
+  const [selected, setSelected] = useState<UserDetails | null>(null);
+  const { busy, run } = useApiAction(showToast);
+  const confirm = useConfirm();
+
+  useEffect(() => {
+    if (!selected && users?.[0]) void selectUser(users[0].id);
+  }, [users]);
+
+  async function selectUser(id: string) {
+    try { setSelected(await requestJson(apiBase, `/auth/users/${id}`, {})); }
+    catch (e: any) { showToast(e.message, 'error'); }
+  }
+
+  return (
+    <UsersPanel
+      users={users || []}
+      selected={selected}
+      currentUserId={currentUserId}
+      busy={busy}
+      onSelect={id => void selectUser(id)}
+      onRoleChange={async (id, role) => {
+        await run(async () => { await requestJson(apiBase, `/auth/users/${id}/role`, {}, { method: 'PATCH', body: JSON.stringify({ role }) }); await selectUser(id); refresh(); }, 'User role updated');
+      }}
+      onDelete={async (id) => {
+        const userName = users?.find(u => u.id === id)?.name || selected?.name || 'This user';
+        if (!await confirm({ title: 'Delete this user?', description: `${userName} will permanently lose access to the panel. This cannot be undone.`, confirmLabel: 'Delete user', tone: 'danger' })) return;
+        await run(async () => { await requestJson(apiBase, `/auth/users/${id}`, {}, { method: 'DELETE' }); setSelected(null); refresh(); }, 'User deleted');
+      }}
+    />
+  );
+}
 
 export type UserDetails = User & {
   servers: ServerRecord[];

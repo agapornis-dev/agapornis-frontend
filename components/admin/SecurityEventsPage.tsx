@@ -1,10 +1,18 @@
 import { Eye, Filter, Search, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { LiveConnectionState } from '../../hooks/useAgentHealth';
+import { useCrowdSecTelemetry } from '../../hooks/useCrowdSecTelemetry';
 import { CrowdSecAlert, CrowdSecNodeTelemetry } from '../../lib/types';
 import { EmptyState, MetricCell, Panel, cn } from '../ui';
 import { LiveStatus } from '../feedback/LoadingStates';
 import { BanManagementPanel } from './BanManagementPanel';
+
+/* ── Self-contained screen (data fetching + UI) ─────────────────────── */
+
+export function SecurityEventsScreen({ apiBase, showToast }: { apiBase: string; showToast: (message: string, tone?: any) => void }) {
+  const { nodes, connection } = useCrowdSecTelemetry(apiBase);
+  return <SecurityEventsPage nodes={nodes} connection={connection} apiBase={apiBase} showToast={showToast} />;
+}
 
 type SortMode = 'newest' | 'oldest' | 'events';
 

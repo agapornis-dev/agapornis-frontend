@@ -5,7 +5,7 @@ import { readResponse } from '../lib/http';
 import { AuthScreen } from '../components/auth/AuthScreen';
 import { DashboardShell } from '../components/layout/DashboardShell';
 import { useFeedback } from '../components/feedback/FeedbackProvider';
-import { ProfileScreen } from '../components/screens/ProfileScreen';
+import { ProfileScreen } from '../components/profile/ProfilePage';
 import { ServersScreen } from '../components/screens/ServersScreen';
 import { TicketsScreen } from '../components/screens/TicketsScreen';
 import { MaintenancePage } from './maintenance';

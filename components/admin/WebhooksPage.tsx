@@ -9,6 +9,46 @@ import { btn, ghostBtn, inp } from '../../lib/constants';
 import { Panel, PanelHeader, EmptyState, Field, cn } from '../ui';
 import { useConfirm } from '../feedback/FeedbackProvider';
 import { AllowedEggNestPicker, EggSelectOptions } from './EggNestFields';
+import { requestJson } from '../../lib/http';
+import { useApiAction } from '../../hooks/useApiAction';
+
+/* ── Self-contained screen (data fetching + UI) ─────────────────────── */
+
+export function WebhooksScreen({ apiBase, showToast }: { apiBase: string; showToast: (msg: string, type: 'success' | 'error') => void }) {
+  const [data, setData] = useState({ targets: [] as any[], events: [] as any[], plans: [] as any[], eggs: [] as any[], agents: [] as any[] });
+  const [loading, setLoading] = useState(true);
+  const { busy, run } = useApiAction(showToast);
+
+  const fetchAll = async () => {
+    const results = await Promise.all([
+      requestJson(apiBase, '/webhooks/targets', {}).catch(() => []),
+      requestJson(apiBase, '/webhooks/events', {}).catch(() => []),
+      requestJson(apiBase, '/server-plans', {}).catch(() => []),
+      requestJson(apiBase, '/eggs', {}).catch(() => []),
+      requestJson(apiBase, '/agents', {}).catch(() => [])
+    ]);
+    setData({ targets: results[0], events: results[1], plans: results[2], eggs: results[3], agents: results[4] });
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchAll(); }, [apiBase]);
+
+  if (loading) return <div>Loading...</div>;
+
+  return (
+    <WebhooksPanel
+      apiBase={apiBase}
+      targets={data.targets} events={data.events} plans={data.plans} eggs={data.eggs} agents={data.agents}
+      busy={busy}
+      onCreate={(formData) => run(() => requestJson(apiBase, '/webhooks/targets', {}, { method: 'POST', body: JSON.stringify(formData) }), 'Webhook target added').then(() => fetchAll())}
+      onDelete={(id) => run(() => requestJson(apiBase, `/webhooks/targets/${id}`, {}, { method: 'DELETE' }), 'Webhook target deleted').then(() => fetchAll())}
+      onTest={(id) => run(() => requestJson(apiBase, `/webhooks/test/${id}`, {}, { method: 'POST', body: JSON.stringify({ ok: true }) }), 'Test payload sent').then(() => fetchAll())}
+      onCreatePlan={(formData) => run(() => requestJson(apiBase, '/server-plans', {}, { method: 'POST', body: JSON.stringify(formData) }), 'Server plan created').then(() => fetchAll())}
+      onUpdatePlan={(id, formData) => run(() => requestJson(apiBase, `/server-plans/${id}`, {}, { method: 'PATCH', body: JSON.stringify(formData) }), 'Server plan updated').then(() => fetchAll())}
+      onDeletePlan={(id) => run(() => requestJson(apiBase, `/server-plans/${id}`, {}, { method: 'DELETE' }), 'Server plan deleted').then(() => fetchAll())}
+    />
+  );
+}
 
 function parseObjectJson(value: string) {
   if (!value.trim()) return {};

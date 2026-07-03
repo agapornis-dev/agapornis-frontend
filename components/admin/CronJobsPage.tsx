@@ -3,6 +3,39 @@ import { Clock, Play, Trash2, Info, Plus, Terminal } from 'lucide-react';
 import { CronJobRecord, ServerRecord, WebhookTarget } from '../../lib/types';
 import { btn, ghostBtn, inp } from '../../lib/constants';
 import { Panel, PanelHeader, EmptyState, Field, cn } from '../ui';
+import { requestJson } from '../../lib/http';
+import { useApiAction } from '../../hooks/useApiAction';
+
+/* ── Self-contained screen (data fetching + UI) ─────────────────────── */
+
+export function CronJobsScreen({ apiBase, showToast }: { apiBase: string; showToast: (msg: string, type: 'success' | 'error') => void }) {
+  const [data, setData] = useState({ jobs: [] as CronJobRecord[], servers: [] as ServerRecord[], webhookTargets: [] as WebhookTarget[] });
+  const [loading, setLoading] = useState(true);
+  const { busy, run } = useApiAction(showToast);
+
+  const fetchAll = async () => {
+    const results = await Promise.all([
+      requestJson(apiBase, '/cronjobs', {}).catch(() => []),
+      requestJson(apiBase, '/servers', {}).catch(() => []),
+      requestJson(apiBase, '/webhooks/targets', {}).catch(() => [])
+    ]);
+    setData({ jobs: results[0], servers: results[1], webhookTargets: results[2] });
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchAll(); }, [apiBase]);
+
+  if (loading) return <div>Loading...</div>;
+
+  return (
+    <CronJobsPanel
+      jobs={data.jobs} servers={data.servers} webhookTargets={data.webhookTargets} busy={busy}
+      onCreate={(formData) => run(() => requestJson(apiBase, '/cronjobs', {}, { method: 'POST', body: JSON.stringify(formData) }), 'Cron job scheduled').then(() => fetchAll())}
+      onRun={(id) => run(() => requestJson(apiBase, `/cronjobs/${id}/run`, {}, { method: 'POST' }), 'Cron job execution triggered').then(() => fetchAll())}
+      onDelete={(id) => run(() => requestJson(apiBase, `/cronjobs/${id}`, {}, { method: 'DELETE' }), 'Cron job deleted').then(() => fetchAll())}
+    />
+  );
+}
 
 function parseObjectJson(value: string) {
   if (!value.trim()) return {};

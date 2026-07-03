@@ -5,6 +5,47 @@ import { Panel, EmptyState, cn } from '../ui';
 import { defaultEggJson } from '../../lib/utils';
 import { useConfirm } from '../feedback/FeedbackProvider';
 import { groupEggsByNest } from './EggNestFields';
+import { useLazyData } from '../../hooks/useLazyData';
+import { requestJson } from '../../lib/http';
+import { useApiAction } from '../../hooks/useApiAction';
+
+/* ── Self-contained screen (data fetching + UI) ─────────────────────── */
+
+export function EggsScreen({ apiBase, showToast }: { apiBase: string; showToast: (msg: string, type: 'success' | 'error') => void }) {
+  const { data: eggs, loading, refresh } = useLazyData<any[]>(apiBase, '/eggs', {}, []);
+  const { data: catalog, loading: catalogLoading, refresh: refreshCatalog } = useLazyData<any[]>(apiBase, '/eggs/catalog', {}, []);
+  const { data: nests, loading: nestsLoading, refresh: refreshNests } = useLazyData<any[]>(apiBase, '/eggs/nests', {}, []);
+  const { busy, run } = useApiAction(showToast);
+
+  const refreshAll = () => Promise.all([refresh(), refreshCatalog(), refreshNests()]);
+
+  if (loading && !eggs?.length) return <div className="p-4 text-[var(--muted-foreground)]">Loading templates...</div>;
+
+  return (
+    <EggsPanel
+      eggs={eggs || []}
+      nests={nests || []}
+      catalog={catalog || []}
+      busy={busy || loading || catalogLoading || nestsLoading}
+      onImport={async (json) => { await run(() => requestJson(apiBase, '/eggs/import', {}, { method: 'POST', body: json }), 'Template (Egg) successfully imported'); await refreshAll(); }}
+      onImportFiles={async (files) => {
+        const parsed = [];
+        for (const file of files) {
+          try { parsed.push(JSON.parse(await file.text())); }
+          catch { showToast(`${file.name} does not contain valid JSON`, 'error'); return false; }
+        }
+        const result = await run(() => requestJson(apiBase, '/eggs/import/batch', {}, { method: 'POST', body: JSON.stringify({ eggs: parsed }) }));
+        if (result) { showToast(`${result.imported} egg${result.imported === 1 ? '' : 's'} imported`, 'success'); await refreshAll(); return true; }
+        return false;
+      }}
+      onCatalogInstall={async (catalogId) => { await run(() => requestJson(apiBase, `/eggs/catalog/${encodeURIComponent(catalogId)}/install`, {}, { method: 'POST' }), 'Egg installed from the Pterodactyl catalog'); await refreshAll(); }}
+      onRemove={async (eggId) => { await run(() => requestJson(apiBase, `/eggs/${encodeURIComponent(eggId)}`, {}, { method: 'DELETE' }), 'Egg removed'); await refreshAll(); }}
+      onCreateNest={async (name) => { await run(() => requestJson(apiBase, '/eggs/nests', {}, { method: 'POST', body: JSON.stringify({ name }) }), 'Nest created'); await refreshNests(); }}
+      onAssignNest={async (eggId, nestId) => { await run(() => requestJson(apiBase, `/eggs/${encodeURIComponent(eggId)}/nest`, {}, { method: 'PATCH', body: JSON.stringify({ nestId }) })); await Promise.all([refresh(), refreshNests()]); }}
+      onRemoveNest={async (nestId) => { await run(() => requestJson(apiBase, `/eggs/nests/${encodeURIComponent(nestId)}`, {}, { method: 'DELETE' }), 'Nest removed; its eggs were moved to Uncategorized'); await Promise.all([refresh(), refreshNests()]); }}
+    />
+  );
+}
 
 export function EggsPanel({ eggs, nests, catalog, busy, onImport, onImportFiles, onCatalogInstall, onRemove, onCreateNest, onAssignNest, onRemoveNest }: {
   eggs: any[];

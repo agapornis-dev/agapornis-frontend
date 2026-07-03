@@ -3,6 +3,29 @@ import { AlertTriangle, Bell, Check, CircleUserRound, Cloud, Construction, IdCar
 import { btn, inp } from '../../lib/constants';
 import { PanelAdminSettings } from '../../lib/types';
 import { Field, Panel, cn } from '../ui';
+import { requestJson } from '../../lib/http';
+import { useLazyData } from '../../hooks/useLazyData';
+import { useApiAction } from '../../hooks/useApiAction';
+
+/* ── Self-contained screen (data fetching + UI) ─────────────────────── */
+
+export function SettingsScreen({ apiBase, showToast, updatePublicSettings }: { apiBase: string; showToast: (msg: string, type: 'success' | 'error') => void; updatePublicSettings: (s: any) => void }) {
+  const { data: settings, loading, refresh } = useLazyData<any>(apiBase, '/settings', {}, null);
+  const { busy, run } = useApiAction(showToast);
+
+  const handleSave = async (formData: any) => {
+    const updated = await run(() => requestJson(apiBase, '/settings', {}, { method: 'PATCH', body: JSON.stringify(formData) }), 'Panel settings saved');
+    if (updated) { updatePublicSettings(updated); refresh(); }
+  };
+
+  const handleTestEmail = async (email: string, smtp: any) => {
+    await run(() => requestJson(apiBase, '/settings/smtp/test', {}, { method: 'POST', body: JSON.stringify({ email, smtp }) }), `Test email sent to ${email}`);
+  };
+
+  if (loading && !settings) return <div>Loading...</div>;
+
+  return <PanelSettingsPage settings={settings} busy={busy || loading} onSave={handleSave} onTestEmail={handleTestEmail} />;
+}
 
 export function PanelSettingsPage({
   settings,

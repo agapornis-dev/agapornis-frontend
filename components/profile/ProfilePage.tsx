@@ -1,11 +1,36 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { Copy, KeyRound, RefreshCw, Save, ShieldCheck, ShieldOff, UserRound, AlertTriangle, Fingerprint } from 'lucide-react';
-import { User } from '../../lib/types';
+import { Session, User } from '../../lib/types';
 import { btn, inp } from '../../lib/constants';
 import { Field, Panel, cn } from '../ui';
 import { HeadersMap, requestJson } from '../../lib/http';
 import { AccountActivity } from '../server/ServerActivity';
+import { useApiAction } from '../../hooks/useApiAction';
+
+/* ── Self-contained screen (data fetching + UI) ─────────────────────── */
+
+export function ProfileScreen({ apiBase, showToast, session, setSession }: { apiBase: string; showToast: (msg: string, type: 'success' | 'error') => void; session: Session; setSession: (s: any) => void }) {
+  const { busy, run } = useApiAction(showToast);
+
+  return (
+    <ProfilePage
+      user={session.user}
+      busy={busy}
+      apiBase={apiBase}
+      authHeaders={{}}
+      onSaveProfile={async (data) => {
+        const user = await run(() => requestJson(apiBase, '/auth/me', {}, { method: 'PATCH', body: JSON.stringify(data) }), 'Profile updated');
+        if (user) setSession({ user });
+      }}
+      onChangePassword={async (data) => {
+        await run(() => requestJson(apiBase, '/auth/password', {}, { method: 'PATCH', body: JSON.stringify(data) }), 'Password changed');
+      }}
+      onTwoFactorChanged={user => setSession({ user })}
+      showToast={showToast}
+    />
+  );
+}
 
 export function ProfilePage({
   user,
