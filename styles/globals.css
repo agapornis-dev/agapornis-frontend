@@ -1,0 +1,218 @@
+@import "tailwindcss";
+
+:root {
+  --background: #080808;
+  --foreground: #f7f7f7;
+
+  --card: #0f0f0f;
+  --card-foreground: #f7f7f7;
+
+  --popover: #0f0f0f;
+  --popover-foreground: #f7f7f7;
+
+  --primary: #ffffff;
+  --primary-foreground: #0f0f0f;
+
+  --secondary: #171717;
+  --secondary-foreground: #eeeeee;
+
+  --muted: #1a1a1a;
+  --muted-foreground: #9b9b9b;
+
+  --accent: #ff0000;
+  --accent-foreground: #0f0f0f;
+
+  --destructive: #ff5c5c;
+  --destructive-foreground: #ffffff;
+
+  --border: #262626;
+  --input: #242424;
+  --ring: #f5f5f5;
+
+  --success: #34d399;
+
+  --radius-panel: 0.5rem;
+
+  --color-page: var(--background);
+  --color-surface: var(--card);
+  --color-surface-strong: var(--secondary);
+  --color-border: var(--border);
+  --color-text: var(--foreground);
+  --color-muted: var(--muted-foreground);
+  --color-soft: var(--secondary-foreground);
+  --color-accent: var(--primary);
+  --color-accent-text: var(--primary-foreground);
+  --color-danger: var(--destructive);
+}
+
+@theme inline {
+  --font-sans: var(--font-ibm-plex-sans);
+  --font-heading: var(--font-ibm-plex-sans);
+  --font-mono: var(--font-ibm-plex-mono);
+}
+@layer base {
+  html,
+  body {
+    font-family: var(--font-sans), sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading), sans-serif;
+  }
+
+  code,
+  pre,
+  kbd,
+  samp,
+  .cm-scroller,
+  .cm-editor,
+  .terminal,
+  .xterm {
+    font-family: var(--font-mono), monospace;
+  }
+}
+
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#__next {
+  min-height: 100%;
+}
+
+html {
+  background: var(--background);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  overflow-x: hidden;
+  font-family: var(--font-sans) !important;
+  margin: 0;
+  background:
+    radial-gradient(circle at 50% -20%, rgba(255, 255, 255, 0.075), transparent 32rem),
+    linear-gradient(180deg, #090909 0%, var(--background) 34rem);
+  color: var(--foreground);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+@keyframes loading-slide {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(410%); }
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+select {
+  cursor: pointer;
+}
+
+select:not([multiple]) {
+  appearance: none;
+  min-width: 0;
+  padding-inline-end: 2.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239b9b9b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+select:not([multiple]):hover:not(:disabled) {
+  border-color: #3d3d3d;
+  background-color: #1c1c1c;
+}
+
+select:not([multiple]):focus-visible {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23f7f7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3C/svg%3E");
+}
+
+select option,
+select optgroup {
+  background: #171717;
+  color: var(--foreground);
+}
+
+select option:disabled {
+  color: var(--muted-foreground);
+}
+
+select:disabled {
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+}
+
+select::-ms-expand {
+  display: none;
+}
+
+button:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
+input,
+select,
+textarea {
+  color-scheme: dark;
+}
+
+::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2f2f2f;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+.cm-theme,
+.cm-editor 
+.terminal
+.xterm  {
+  height: 100% !important;
+}
+
+.cm-scroller {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+}

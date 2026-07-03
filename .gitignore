@@ -1,0 +1,4 @@
+node_modules/
+.next/
+.npm-cache/
+next-env.d.ts
