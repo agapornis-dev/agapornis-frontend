@@ -1,0 +1,10 @@
+node_modules
+.next
+.npm-cache
+.bun-cache
+.git
+.github
+.env
+.env.*
+!.env.example
+*.log

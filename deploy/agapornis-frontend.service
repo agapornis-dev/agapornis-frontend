@@ -1,0 +1,23 @@
+[Unit]
+Description=Agapornis frontend
+After=network-online.target agapornis-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=agapornis
+Group=agapornis
+WorkingDirectory=/opt/agapornis/frontend/current
+EnvironmentFile=/etc/agapornis/frontend.env
+EnvironmentFile=-/var/lib/agapornis/frontend/version.env
+ExecStart=/usr/bin/env node /opt/agapornis/frontend/current/node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3000
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/agapornis/frontend
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,6 @@
+node_modules/
+.next/
+.npm-cache/
+.bun-cache/
+next-env.d.ts
+.env
