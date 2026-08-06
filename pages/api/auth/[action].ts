@@ -6,7 +6,8 @@ import {
   sessionTokenFromRequest,
   setSessionCookie,
   setTwoFactorChallengeCookie,
-  twoFactorChallengeFromRequest
+  twoFactorChallengeFromRequest,
+  userAgentHeadersFromRequest
 } from '../../../lib/server-api';
 import { issueCsrfToken, validateCsrfRequest } from '../../../lib/csrf-server';
 
@@ -26,6 +27,7 @@ export async function handleAuthAction(req: NextApiRequest, res: NextApiResponse
     if ((action === 'login' || action === 'register') && req.method === 'POST') {
       const data = await serverApi(`/auth/${action}`, '', {
         method: 'POST',
+        headers: userAgentHeadersFromRequest(req),
         body: JSON.stringify(req.body || {})
       });
       if (data?.requiresTwoFactor && data?.challengeToken) {
@@ -73,6 +75,7 @@ export async function handleAuthAction(req: NextApiRequest, res: NextApiResponse
       if (!challengeToken) return res.status(401).json({ error: 'two-factor challenge expired' });
       const data = await serverApi('/auth/2fa/login', '', {
         method: 'POST',
+        headers: userAgentHeadersFromRequest(req),
         body: JSON.stringify({ challengeToken, code: req.body?.code })
       });
       if (!data?.token) return res.status(401).json({ error: 'two-factor verification failed' });

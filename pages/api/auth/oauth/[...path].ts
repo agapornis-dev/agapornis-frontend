@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import * as crypto from 'crypto';
-import { cookieValue, serverApi, sessionTokenFromRequest, setSessionCookie, setTwoFactorChallengeCookie } from '../../../../lib/server-api';
+import { cookieValue, serverApi, sessionTokenFromRequest, setSessionCookie, setTwoFactorChallengeCookie, userAgentHeadersFromRequest } from '../../../../lib/server-api';
 
 const FLOW_COOKIE = 'agapornis_oauth_flow';
 const FLOW_MAX_AGE_SECONDS = 10 * 60;
@@ -60,6 +60,7 @@ async function callback(req: NextApiRequest, res: NextApiResponse) {
   if (flow.mode === 'link' && !token) throw new Error('session expired while connecting account');
   const data = await serverApi(`/auth/social/${flow.provider}/${flow.mode === 'link' ? 'link' : 'exchange'}`, token, {
     method: 'POST',
+    headers: userAgentHeadersFromRequest(req),
     body: JSON.stringify({
       code: String(req.query.code || ''),
       redirectUri: flow.redirectUri,

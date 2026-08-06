@@ -49,6 +49,12 @@ export function authHeaders(token: string) {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+export function userAgentHeadersFromRequest(req: IncomingMessage) {
+  const value = req.headers['user-agent'];
+  const userAgent = Array.isArray(value) ? value[0] : value;
+  return userAgent ? { 'user-agent': userAgent } : {};
+}
+
 export async function serverApi(path: string, token: string, init: RequestInit = {}) {
   const method = String(init.method || 'GET').toUpperCase();
   const body = !['GET', 'HEAD'].includes(method) && init.body == null ? JSON.stringify({}) : init.body;
