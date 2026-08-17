@@ -49,7 +49,7 @@ function SecurityEventsPage({ nodes, connection, apiBase, showToast }: { nodes: 
             Fleet-wide detections grouped for investigation. This dashboard cannot ban, delete, or change CrowdSec decisions.
           </p>
         </div>
-        <LiveStatus state={connection} label="Security stream" />
+        <LiveStatus state={connection} />
       </div>
 
       <BanManagementPanel apiBase={apiBase} showToast={showToast} />

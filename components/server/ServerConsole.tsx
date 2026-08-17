@@ -94,6 +94,36 @@ export function ServerConsole({
     termRef.current = term;
     renderedHistory.current = [];
 
+    term.attachCustomKeyEventHandler((event) => {
+      if (event.type !== 'keydown') return true;
+
+      const key = event.key.toLowerCase();
+      const clipboardModifier = event.ctrlKey || event.metaKey;
+      const copyShortcut = (clipboardModifier && key === 'c')
+        || (event.ctrlKey && event.key === 'Insert');
+      const pasteShortcut = (clipboardModifier && key === 'v')
+        || (event.shiftKey && event.key === 'Insert');
+
+      // Preserve Ctrl+C as a terminal interrupt unless there is selected text.
+      if (copyShortcut && term.hasSelection()) {
+        event.preventDefault();
+        void navigator.clipboard?.writeText(term.getSelection()).catch(() => undefined);
+        return false;
+      }
+
+      if (pasteShortcut && !readOnly && navigator.clipboard?.readText) {
+        event.preventDefault();
+        void navigator.clipboard.readText()
+          .then(text => {
+            if (text && termRef.current === term) term.paste(text);
+          })
+          .catch(() => undefined);
+        return false;
+      }
+
+      return true;
+    });
+
     let fitFrame = 0;
     const fitTerminal = () => {
       cancelAnimationFrame(fitFrame);

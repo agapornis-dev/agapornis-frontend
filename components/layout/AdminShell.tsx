@@ -176,7 +176,7 @@ export function AdminShell({
 
   return (
     <Shell>
-      <div className="flex h-[100dvh] overflow-hidden bg-[var(--secondary)]/30">
+      <div className="flex h-[100dvh] overflow-hidden">
         {/* Mobile overlay */}
         {mobileOpen && (
           <button
@@ -190,7 +190,7 @@ export function AdminShell({
         {/* Sidebar */}
         <aside
           className={cn(
-            'fixed inset-y-0 left-0 z-50 flex min-w-0 flex-col bg-[var(--background)] transition-transform duration-200 ease-out lg:transition-[width]',
+            'fixed inset-y-0 left-0 z-50 flex min-w-0 flex-col border-r border-[var(--border)] bg-[var(--background)] transition-transform duration-200 ease-out lg:transition-[width]',
             'lg:static lg:translate-x-0 lg:bg-transparent',
             mobileOpen
               ? 'translate-x-0 shadow-2xl'
@@ -396,7 +396,7 @@ export function AdminShell({
 
         {/* Main content */}
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <header className="mobile-safe-top flex min-h-14 shrink-0 items-center gap-3 bg-transparent px-3 sm:px-4 lg:h-16 lg:gap-4 lg:px-6">
+          <header className="mobile-safe-top p-4 flex min-h-14 shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--background)] px-3 sm:px-4 lg:h-16 lg:gap-4 lg:px-6">
             <button
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:bg-[var(--secondary)]/50 focus:outline-none lg:hidden"
               onClick={() => setMobileOpen(true)}
@@ -420,7 +420,7 @@ export function AdminShell({
 
           {/* Inset content wrapper */}
           <div className="flex flex-1 flex-col overflow-hidden">
-            <div className="flex flex-1 flex-col overflow-hidden rounded-tl-xl border-l border-t border-[var(--border)] bg-[var(--background)] shadow-sm lg:rounded-tl-2xl">
+            <div className="flex flex-1 flex-col overflow-hidden bg-[var(--background)]">
               {/* Announcement */}
               {announcement.enabled
                 && !announcementDismissed

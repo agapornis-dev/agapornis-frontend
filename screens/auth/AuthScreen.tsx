@@ -224,7 +224,7 @@ export function AuthScreen({ busy, message, settings, twoFactorRequired = false,
         }}
       >
         <div className="relative grid min-h-[100dvh] w-full grid-cols-1 overflow-x-hidden bg-[var(--background)] lg:grid-cols-12">
-          <div className="mobile-safe-top absolute inset-x-0 top-0 z-30 flex items-center justify-between px-4 sm:px-6 lg:justify-end">
+          <div className="mobile-safe-top absolute inset-x-0 top-0 z-30 flex items-center justify-between px-4 sm:px-6 lg:justify-end p-2">
             <span className="truncate pr-4 text-xs font-bold uppercase tracking-[0.18em] text-[var(--foreground)] lg:hidden">
               {settings.branding.name}
             </span>
@@ -639,6 +639,7 @@ export function AuthScreen({ busy, message, settings, twoFactorRequired = false,
 
           {/* Right Side: lightweight atmospheric branding */}
           <aside className="relative hidden flex-col justify-end overflow-hidden bg-[var(--background)] p-10 lg:col-span-7 lg:flex xl:col-span-8 xl:p-16">
+            
             <DitheringBackdrop
               className="absolute inset-0 z-0 opacity-40 mix-blend-screen"
               colorBack={shaderColors.back}
@@ -646,9 +647,10 @@ export function AuthScreen({ busy, message, settings, twoFactorRequired = false,
               speed={0.55}
               maxPixelCount={900_000}
             />
+
             <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_80%_20%,transparent_20%,var(--background)_80%)] pointer-events-none" />
             <div className="absolute inset-0 z-0 bg-gradient-to-t from-var(--background) via-transparent to-transparent opacity-90" />
-            
+
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[var(--background)] via-transparent to-transparent opacity-70" />
 
             {/* Staggered Branding Content */}

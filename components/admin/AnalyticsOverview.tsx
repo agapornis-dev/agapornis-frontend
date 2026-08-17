@@ -11,6 +11,28 @@ import { NodeFleetStatus } from './NodeFleetStatus';
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, LineElement, PointElement, Filler, Tooltip, Legend);
 
+ChartJS.register({
+  id: 'app-font',
+  beforeInit(chart) {
+    if (typeof window !== 'undefined') {
+      chart.options.font.family = window.getComputedStyle(document.body).fontFamily;
+    }
+  }
+});
+
+function areaFill(color: string) {
+  return (context: any) => {
+    const { chart } = context;
+    const { ctx, chartArea } = chart;
+    if (!chartArea) return `${color}24`;
+
+    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+    gradient.addColorStop(0, `${color}38`);
+    gradient.addColorStop(1, `${color}00`);
+    return gradient;
+  };
+}
+
 /* ── Self-contained screen (data fetching + UI) ─────────────────────── */
 
 export function AnalyticsPage({
@@ -59,7 +81,7 @@ export function AnalyticsPage({
             One place for fleet capacity, node health, response time, ownership, and control-plane status.
           </p>
         </div>
-        <LiveStatus state={connection} label="Fleet telemetry" />
+        <LiveStatus state={connection} />
       </div>
 
       <Panel className="overflow-hidden border-[var(--border)]/60 bg-[var(--background)]/50">
@@ -159,10 +181,10 @@ function FleetResourceChart({ agents }: { agents: AgentHealth[] }) {
       return new Date(sample.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }),
     datasets: [
-      { label: 'CPU', data: series('cpuPercentage'), borderColor: '#60a5fa', backgroundColor: '#60a5fa18' },
-      { label: 'RAM', data: series('memoryPercentage'), borderColor: '#c084fc', backgroundColor: '#c084fc18' },
-      { label: 'Storage', data: series('diskPercentage'), borderColor: '#34d399', backgroundColor: '#34d39918' },
-    ].map(dataset => ({ ...dataset, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0.28, spanGaps: true, fill: false }))
+      { label: 'CPU', data: series('cpuPercentage'), borderColor: '#60a5fa', backgroundColor: areaFill('#60a5fa') },
+      { label: 'RAM', data: series('memoryPercentage'), borderColor: '#c084fc', backgroundColor: areaFill('#c084fc') },
+      { label: 'Storage', data: series('diskPercentage'), borderColor: '#34d399', backgroundColor: areaFill('#34d399') },
+    ].map(dataset => ({ ...dataset, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0.28, spanGaps: true, fill: 'origin' }))
   }), [agents, longest, reference]);
   const options = useMemo(() => ({
     responsive: true,
@@ -215,7 +237,7 @@ function CrowdSecInsights({ nodes, connection }: { nodes: CrowdSecNodeTelemetry[
     <Panel className="overflow-hidden border-[var(--border)]/60 bg-[var(--background)]/50">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)]/60 bg-[var(--secondary)]/10 px-6 py-4">
         <div className="flex items-center gap-3"><ShieldAlert size={18} /><h3 className="text-sm font-bold">CrowdSec security analytics</h3></div>
-        <LiveStatus state={connection} label="CrowdSec telemetry" />
+        <LiveStatus state={connection} />
       </div>
       <div className="grid divide-y divide-[var(--border)]/50 sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-5">
         <MetricCell label="Reporting nodes" value={`${activeNodes} / ${nodes.length}`} accent={activeNodes > 0} />
@@ -256,12 +278,13 @@ function FleetResponseChart({ agents }: { agents: AgentHealth[] }) {
         label: agent.nodeId,
         data: [...Array(Math.max(0, longest - history.length)).fill(null), ...history],
         borderColor: palette[index % palette.length],
-        backgroundColor: `${palette[index % palette.length]}18`,
+        backgroundColor: areaFill(palette[index % palette.length]),
         borderWidth: 2,
         pointRadius: 0,
         pointHoverRadius: 4,
         tension: 0.3,
-        spanGaps: false
+        spanGaps: false,
+        fill: 'origin'
       };
     })
   }), [agents, intervalSeconds, longest]);

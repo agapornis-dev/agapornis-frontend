@@ -27,7 +27,7 @@ export function NodeFleetStatus({ agents, connection }: { agents: AgentHealth[];
             Live reachability, rolling response time, host uptime, and resource pressure for every node.
           </p>
         </div>
-        <LiveStatus state={connection} label="Status stream" />
+        <LiveStatus state={connection} />
       </div>
 
       <Panel className="overflow-hidden border-[var(--border)]/60 bg-[var(--background)]/50">

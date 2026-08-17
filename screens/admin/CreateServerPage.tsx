@@ -333,7 +333,7 @@ export function CreateServerPanel({
           <p className="text-sm font-medium text-[var(--muted-foreground)]/80">
             Provision a new instance to the fleet. Capacity is calculated in real-time.
           </p>
-          <LiveStatus state={telemetryConnection} label="Telemetry" />
+          <LiveStatus state={telemetryConnection} />
         </div>
       </div>
 

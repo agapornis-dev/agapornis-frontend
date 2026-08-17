@@ -2,31 +2,30 @@ import { Check, Loader2, RotateCcw, Server, AlertTriangle, ArrowRight, Terminal 
 import { cn } from '../ui';
 import { LiveConnectionState } from '../../hooks/useAgentHealth';
 
-// 1. LiveStatus: Extremely minimal, high-contrast text with a glowing dot
-export function LiveStatus({ state, label = 'Telemetry' }: { state: LiveConnectionState; label?: string }) {
+// 1. LiveStatus: Compact connection-state pill with a static status indicator
+export function LiveStatus({ state }: { state: LiveConnectionState }) {
   const live = state === 'live';
   const connecting = state === 'connecting';
   
   return (
-    <div className="inline-flex items-center gap-2 text-[13px] font-medium text-[var(--muted-foreground)]">
+    <div
+      role="status"
+      aria-live="polite"
+      className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-semibold text-[var(--muted-foreground)] shadow-sm"
+    >
       <div className="relative flex h-2 w-2 items-center justify-center">
-        {live && <span className="absolute h-full w-full animate-ping rounded-full bg-[var(--success)] opacity-40" />}
         <span 
           className={cn(
-            "h-1.5 w-1.5 rounded-full transition-colors duration-500",
-            live ? "bg-[var(--success)] shadow-[0_0_8px_var(--success)]" 
-               : connecting ? "bg-amber-500" 
-               : "bg-[var(--muted-foreground)]"
+            'h-1.5 w-1.5 rounded-full transition-colors duration-500',
+            live
+              ? 'bg-[var(--success)]'
+              : connecting
+                ? 'bg-amber-500'
+                : 'bg-[var(--muted-foreground)]'
           )} 
         />
       </div>
-      <span className="tracking-tight">{label}</span>
-      <span className={cn(
-        "font-mono text-[11px] uppercase tracking-wider",
-        live ? "text-[var(--success)]" : connecting ? "text-amber-500" : "text-[var(--muted-foreground)]"
-      )}>
-        {live ? 'Live' : connecting ? 'Connecting' : 'Offline'}
-      </span>
+      <span>{live ? 'Running' : connecting ? 'Connecting' : 'Offline'}</span>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Manrope,  IBM_Plex_Mono , Inter } from "next/font/google";
+import { Geist,  Geist_Mono  } from "next/font/google";
 import type { AppProps } from "next/app";
 import { MotionConfig } from "motion/react";
 import { FeedbackProvider } from "../components/feedback/FeedbackProvider";
@@ -6,22 +6,17 @@ import { ThemeProvider } from "../components/theme/ThemeProvider";
 import { useEffect } from "react";
 import "../styles/globals.css";
 
-const manrope = Manrope({
+const geist = Geist({
   subsets: ["latin"],
-  variable: "--font-manrope",
+  variable: "--font-geist",
   display: "swap",
 });
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
 
-const ibmPlexMono = IBM_Plex_Mono({
+const geist_mono = Geist_Mono({
   subsets: ["latin"],
   weight: ["400", "700"],
-  variable: "--font-ibm-plex-mono",
+  variable: "--font-geist-mono",
   display: "swap",
 });
 
@@ -47,14 +42,13 @@ export default function App({ Component, pageProps }: AppProps) {
 
       <style jsx global>{`
         :root {
-          --font-sans: ${manrope.style.fontFamily};
-          --font-mono: ${ibmPlexMono.style.fontFamily};
-          --font-inter: ${inter.style.fontFamily};
+          --font-sans: ${geist.style.fontFamily};
+          --font-mono: ${geist_mono.style.fontFamily};
         }
 
         html,
         body {
-          font-family: var(--font-inter), sans-serif;
+          font-family: var(--font-sans), sans-serif;
         }
 
         h1,
@@ -85,7 +79,7 @@ export default function App({ Component, pageProps }: AppProps) {
         <ThemeProvider>
           <FeedbackProvider>
             <div
-              className={`${manrope.variable} ${ibmPlexMono.variable} ${inter.variable} antialiased`}
+              className={`${geist.variable} ${geist_mono.variable} antialiased`}
             >
               <Component {...pageProps} />
             </div>

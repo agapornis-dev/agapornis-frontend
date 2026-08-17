@@ -657,7 +657,7 @@ export function ServersScreen({ apiBase, showToast, session, initialServerId }: 
                   speed={0.45}
                   maxPixelCount={650_000}
                 />
-                <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-[var(--background)] via-[var(--background)]/55 to-transparent" />
+                <div className="pointer-events-none absolute inset-0 z-10 bg-[var(--background)]/50" />
 
                 {/* Content Card */}
                 <div className="relative z-20 flex h-full flex-col items-center justify-center gap-5 text-center px-6">
